@@ -1,0 +1,177 @@
+public string get_cs()
+{
+  return "Data Source=Имя_SQL_Server; Initial Catalog = Имя_Базы_Данных; User ID = sa; Password = ПАРОЛЬ";
+}
+
+
+using (var connection = new SqlConnection(get_cs()))
+{
+	connection.Open();
+	using (var cmd = new SqlCommand("SELECT запрос", connection))
+	{
+		using (var rd = cmd.ExecuteReader())
+		{
+			if (rd.Read())
+			{                           
+				переменная_куда_вы_хотите_загнать_данные_из_БД = rd.GetValue(номер_столбца).ToString()
+			}
+		}
+	}
+	connection.Close();
+}
+
+
+using (var connection = new SqlConnection(get_cs()))
+{
+	connection.Open();
+	using (var cmd = new SqlCommand(КОМАНДА, connection))
+	{
+		cmd.ExecuteNonQuery();
+	}
+	connection.Close();
+}   
+
+_________________________________________
+{
+        int pageSize = 5; // размер страницы
+        int pageNumber = 0; // текущая страница
+        string connectionString = @"Data Source=.\SQLEXPRESS;Initial Catalog=usersdb;Integrated Security=True";
+        SqlDataAdapter adapter;
+        DataSet ds;
+        public Form1()
+        {
+            InitializeComponent();
+             
+            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView1.AllowUserToAddRows = false;
+ 
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                adapter = new SqlDataAdapter(GetSql(), connection);
+ 
+                ds = new DataSet();
+                adapter.Fill(ds, "Users");
+                dataGridView1.DataSource = ds.Tables[0];
+                dataGridView1.Columns["Id"].ReadOnly = true;
+            }
+        }
+        // обработчик кнопки Вперед
+        private void nextButton_Click(object sender, EventArgs e)
+        {
+            if (ds.Tables["Users"].Rows.Count < pageSize) return;
+ 
+            pageNumber++;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                adapter = new SqlDataAdapter(GetSql(), connection);
+ 
+                ds.Tables["Users"].Rows.Clear();
+ 
+                adapter.Fill(ds,"Users");
+            }
+        }
+        // обработчик кнопки Назад
+        private void backButton_Click(object sender, EventArgs e)
+        {
+            if (pageNumber==0) return;
+            pageNumber--;
+             
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                adapter = new SqlDataAdapter(GetSql(), connection);
+ 
+                ds.Tables["Users"].Rows.Clear();
+ 
+                adapter.Fill(ds, "Users");
+            }
+        }
+ 
+        private string GetSql()
+        {
+            return "SELECT * FROM Users ORDER BY Id OFFSET ((" + pageNumber + ") * " + pageSize + ") " +
+                "ROWS FETCH NEXT " + pageSize + "ROWS ONLY";
+        }
+    }
+
+___________________________
+
+ DataSet ds;
+        SqlDataAdapter adapter;
+        SqlCommandBuilder commandBuilder;
+        string connectionString = @"Data Source=.\SQLEXPRESS;Initial Catalog=usersdb;Integrated Security=True";
+        string sql = "SELECT * FROM Users";
+ 
+        public Form1()
+        {
+            InitializeComponent();
+ 
+            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView1.AllowUserToAddRows = false;
+ 
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                adapter = new SqlDataAdapter(sql, connection);
+ 
+                ds = new DataSet();
+                adapter.Fill(ds);
+                dataGridView1.DataSource = ds.Tables[0];
+                // делаем недоступным столбец id для изменения
+                dataGridView1.Columns["Id"].ReadOnly = true;
+            }
+             
+        }
+        // кнопка добавления
+        private void addButton_Click(object sender, EventArgs e)
+        {
+            DataRow row = ds.Tables[0].NewRow(); // добавляем новую строку в DataTable
+            ds.Tables[0].Rows.Add(row);
+        }
+        // кнопка удаления
+        private void deleteButton_Click(object sender, EventArgs e)
+        {
+            // удаляем выделенные строки из dataGridView1
+            foreach(DataGridViewRow row in dataGridView1.SelectedRows)
+            {
+                dataGridView1.Rows.Remove(row);
+            }   
+        }
+        // кнопка сохранения
+        private void saveButton_Click(object sender, EventArgs e)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                adapter = new SqlDataAdapter(sql, connection);
+                commandBuilder = new SqlCommandBuilder(adapter);
+                adapter.InsertCommand = new SqlCommand("sp_CreateUser", connection);
+                adapter.InsertCommand.CommandType = CommandType.StoredProcedure;
+                adapter.InsertCommand.Parameters.Add(new SqlParameter("@name", SqlDbType.NVarChar, 50, "Name"));
+                adapter.InsertCommand.Parameters.Add(new SqlParameter("@age", SqlDbType.Int, 0, "Age"));
+ 
+                SqlParameter parameter = adapter.InsertCommand.Parameters.Add("@Id", SqlDbType.Int, 0, "Id");
+                parameter.Direction = ParameterDirection.Output;
+ 
+                adapter.Update(ds);
+            }
+        }
+    }
+
+
+_______________________
+
+string connectionString = @"Data Source=.\SQLEXPRESS;Initial Catalog=usersdb;Integrated Security=True";
+ 
+string sqlExpression = "SELECT COUNT(*) FROM Users";
+using (SqlConnection connection = new SqlConnection(connectionString))
+{
+    connection.Open();
+    SqlCommand command = new SqlCommand(sqlExpression, connection);
+    object count = command.ExecuteScalar();
+ 
+    command.CommandText = "SELECT MIN(Age) FROM Users";
+    object minAge = command.ExecuteScalar();
+ 
+    Console.WriteLine("В таблице {0} объектов", count);
+    Console.WriteLine("Минимальный возраст: {0}", minAge);
+}
